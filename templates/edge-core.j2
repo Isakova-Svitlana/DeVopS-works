@@ -1,0 +1,219 @@
+!<stackingDB>00</stackingDB>
+!<stackingMac>01_8c-ea-1b-c8-16-99_00</stackingMac>
+!
+
+!
+
+!
+!---<InitPhaseConfig>
+!---</InitPhaseConfig>
+!
+!
+!
+!
+prompt {{ interface['sysname'] }}
+hostname {{ interface['sysname'] }}
+!
+jumbo frame
+!
+!
+!
+!
+!
+!
+!
+snmp-server community public ro
+snmp-server community private rw
+!
+snmp-server enable traps authentication
+snmp-server group UTMgroup v3 priv read utm-view write utm-view
+snmp-server user utm UTMgroup v3 encrypted auth md5 08981a75b41ed51fd59926ed64aabfa8 priv des56 a7599e739932f140e805c3924a950539
+snmp-server view utm-view 1 included
+snmp-server view utm-view 1.* included
+!
+!
+username mgv access-level 15
+username mgv password 7 a063126716ee312c40ad22ed4fe0d1cc
+no username admin
+enable password 7 a063126716ee312c40ad22ed4fe0d1cc
+!
+!
+!
+!
+!
+!
+!
+!
+!
+vlan database
+ VLAN 1 name DefaultVlan media ethernet
+ VLAN {{ interface['ipoe_vlan'] }} name ipoe media ethernet
+ vlan {{ interface['managment']['vlan'] }} media ethernet
+!
+!
+!
+!
+!
+!
+spanning-tree mst configuration
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+access-list IP extended acl3000
+ deny UDP any any destination-port 137
+ deny UDP any any destination-port 138
+ deny UDP any any destination-port 139
+ deny TCP any any destination-port 137
+ deny TCP any any destination-port 138
+ deny TCP any any destination-port 139
+ deny TCP any any destination-port 445
+ deny UDP any any destination-port 445
+!
+!
+!
+!
+!
+!
+!
+!
+!
+loopback-detection
+!
+!
+{% for key1,item in interface['iface'].items() %}
+{% set port = key1%}
+{% if key1 > 24 %}
+    {% set port = key1 + 2 %}
+{% endif %}
+interface interface ethernet 1/{{ port }}
+ {% if interface['iface'][key1]['untagged'] is defined %}
+ switchport allowed vlan add {{ interface['iface'][key1]['untagged'] }} untagged
+ switchport native vlan {{ interface['iface'][key1]['untagged'] }}
+ port security max-mac-count 3
+ switchport broadcast packet-rate 512
+ switchport multicast packet-rate 512
+ switchport unknown-unicast packet-rate 512
+ switchport ingress-filtering
+ ip access-group acl3000 in
+ ip source-guard sip
+ {% endif %}
+ {% if interface['iface'][key1]['tagged'] is defined or interface['iface'][key1]['trunk'] is defined %}
+ switchport allowed vlan add {{ interface['iface'][key1]['tagged'] or interface['iface'][key1]['trunk'] }} tagged
+ {% endif %}
+ switchport allowed vlan remove 1
+ spanning-tree spanning-disabled
+ loopback-detection
+!
+{% endfor%}
+!
+!
+!
+!
+!
+interface vlan {{ interface['managment']['vlan'] }}
+ ip address {{ interface['managment']['ip'] }} 255.255.255.0
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+ip default-gateway {{ interface['managment']['gateway'] }}
+!
+!
+!
+no spanning-tree
+!
+!
+!
+!
+!
+!
+radius-server 1 host 172.18.2.254 auth-port 1812 acct-port 1813 timeout 5 retransmit 2 key NiVOU05LZ3Y=
+radius-server key NiVOU05LZ3Y=
+radius-server acct-port 1813
+!
+authentication login radius local
+authentication enable radius local
+!
+!
+aaa authorization command 15 default group rad
+!
+aaa accounting exec default start-stop group rad
+!
+aaa group server radius rad
+server 1
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+ip dhcp snooping
+ip dhcp snooping vlan {{ interface['ipoe_vlan'] }}
+ip dhcp snooping information option
+ip dhcp snooping information option remote-id string {{ interface['managment']['ip'] }}
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+!
+interface vlan {{ interface['managment']['vlan'] }}
+!
+!
+!
+!
+!
+!
+line console
+ login
+!
+!
+line vty
+ login
+ authorization exec default
+!
+!
+!
+end
+!

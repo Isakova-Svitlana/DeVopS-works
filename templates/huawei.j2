@@ -1,0 +1,652 @@
+
+#
+!Software Version V100R005C01SPC100
+ sysname {{ sysname }}
+#
+ super password level 15 cipher 7Q*1XC<Z^'WQ=^Q`MAF4<1!!
+#
+ undo ipv6
+#
+ voice-vlan mac-address 0001-e900-0000 mask ffff-ff00-0000 description Siemens phone
+ voice-vlan mac-address 0003-6b00-0000 mask ffff-ff00-0000 description Cisco phone
+ voice-vlan mac-address 0004-0d00-0000 mask ffff-ff00-0000 description Avaya phone
+ voice-vlan mac-address 0060-b900-0000 mask ffff-ff00-0000 description Philips/NEC phone
+ voice-vlan mac-address 00d0-1e00-0000 mask ffff-ff00-0000 description Pingtel phone
+ voice-vlan mac-address 00e0-7500-0000 mask ffff-ff00-0000 description Polycom phone
+ voice-vlan mac-address 00e0-bb00-0000 mask ffff-ff00-0000 description 3com phone
+#
+ vlan batch {{ vlan }} {{ managment_vlan }} {{ transit_vlans}}
+#
+ igmp-snooping enable
+ igmp-snooping send-query source-address 196.168.0.1
+#
+ bpdu enable
+#
+ dhcp enable
+ dhcp snooping enable
+ dhcp option82 circuit-id format user-defined "%portname:%svlan:%sysname"
+ dhcp option82 remote-id format user-defined "{{ ipaddr }}"
+#
+ undo http server enable
+#
+ drop illegal-mac alarm
+#
+radius-server template radius
+ radius-server shared-key cipher aa_;#/PQP_KQ=^Q`MAF4<1!!
+ radius-server authentication 172.18.2.254 1812
+ radius-server accounting 172.18.2.254 1813
+ radius-server retransmit 2
+ undo radius-server user-name domain-included
+#
+acl number 3000
+ rule 5 deny udp source-port eq bootps
+ rule 10 deny udp source-port range netbios-ns netbios-ssn
+ rule 15 deny tcp source-port range 137 139
+ rule 20 deny udp source-port eq 445
+ rule 25 deny tcp source-port eq 445
+acl number 3005
+ rule 20 deny igmp
+acl number 3006
+ rule 10 permit igmp destination 239.239.239.0 0.0.0.255
+ rule 15 permit igmp destination 224.0.0.0 0.0.0.255
+ rule 20 deny igmp
+acl number 3007
+ rule 10 permit igmp destination 239.239.238.0 0.0.1.255
+ rule 20 permit igmp destination 224.0.0.0 0.0.0.255
+ rule 30 deny igmp
+acl number 3008
+ rule 10 permit igmp destination 239.239.238.0 0.0.1.255
+ rule 20 permit igmp destination 239.239.237.0 0.0.0.255
+ rule 30 permit igmp destination 224.0.0.0 0.0.0.255
+ rule 40 deny igmp
+#
+vlan {{ vlan }}
+ igmp-snooping enable
+ igmp-snooping prompt-leave
+ dhcp snooping enable
+ dhcp snooping trusted interface GigabitEthernet0/0/2
+ dhcp option82 insert enable interface Ethernet 0/0/1 to 0/0/24
+ ip source check user-bind enable
+vlan 4000
+ igmp-snooping enable
+ igmp-snooping version 3
+ igmp-snooping prompt-leave
+ multicast-vlan enable
+ multicast-vlan user-vlan {{ vlan }}
+#
+aaa
+ authentication-scheme default
+ authentication-scheme radius
+  authentication-mode radius local
+ authorization-scheme default
+ authorization-scheme radius
+  authorization-mode  if-authenticated local
+ accounting-scheme default
+ domain default
+ domain default_admin
+  authentication-scheme radius
+  authorization-scheme radius
+  radius-server  radius
+ local-user mgv password cipher 7Q*1XC<Z^'WQ=^Q`MAF4<1!!
+ local-user mgv privilege level 15
+ local-user mgv ftp-directory flash:
+ undo local-user admin
+#
+interface Vlanif{{ managment_vlan }}
+ ip address {{ ipaddr }} 255.255.255.0
+#
+interface Ethernet0/0/1
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/2
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/3
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/4
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/5
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/6
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/7
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/8
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/9
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/10
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/11
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/12
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/13
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/14
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/15
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/16
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/17
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/18
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/19
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/20
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/21
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/22
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/23
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface Ethernet0/0/24
+ port hybrid pvid vlan {{ vlan }}
+ undo port hybrid vlan 1
+ port hybrid untagged vlan {{ vlan }} 4000
+ mac-limit maximum 3 alarm disable
+ loopback-detect enable
+ loopback-detect action shutdown
+ traffic-filter inbound acl 3000 rule 5
+ traffic-filter inbound acl 3000 rule 10
+ traffic-filter inbound acl 3000 rule 15
+ traffic-filter inbound acl 3000 rule 20
+ traffic-filter inbound acl 3000 rule 25
+ igmp-snooping group-limit 2 vlan {{ vlan }} 4000
+ igmp-snooping group-policy 3005 vlan {{ vlan }}
+ igmp-snooping group-policy 3005 vlan 4000
+ multicast-source-deny vlan {{ vlan }} 4000
+ am isolate GigabitEthernet0/0/1
+ port-isolate enable group 1
+ broadcast-suppression 1
+#
+interface GigabitEthernet0/0/1
+ port link-type trunk
+ undo port trunk allow-pass vlan 1
+ port trunk allow-pass vlan {{ managment_vlan }} {{ transit_vlans }}
+ port media type fiber
+     undo negotiation auto
+ combo-port auto
+#
+interface GigabitEthernet0/0/2
+ port link-type trunk
+ undo port trunk allow-pass vlan 1
+ port trunk allow-pass vlan {{ vlan }} {{ managment_vlan }} {{ transit_vlans }}
+ port media type fiber
+     undo negotiation auto
+ combo-port auto
+#
+interface NULL0
+#
+ ip route-static 0.0.0.0 0.0.0.0 {{ gateway }}
+#
+ snmp-agent
+ snmp-agent local-engineid 000007DB7F00000100003C5D
+ snmp-agent community read  public
+ snmp-agent community write  private
+ snmp-agent sys-info contact info@utm.if.ua
+ snmp-agent sys-info location stusa28k2p3
+ snmp-agent sys-info version v1 v3
+ snmp-agent group v3 UTMgroup write-view utm-view
+ snmp-agent group v3 UTMgroup authentication  write-view utm-view
+ snmp-agent target-host trap  address udp-domain {{ gateway }} params securityname public
+ snmp-agent mib-view included utm-view system
+ snmp-agent mib-view included utm-view interfaces
+ snmp-agent usm-user v3 utm UTMgroup  authentication-mode md5 `3CaL8S3P;,TI<LL8:)DP1!! privacy-mode des56 H^)%$B=4!V#$;MRB;R3CX1!!
+ snmp-agent trap enable feature-name standard trap-name coldstart
+ snmp-agent trap enable feature-name standard trap-name warmstart
+ snmp-agent trap enable feature-name standard trap-name linkup
+ snmp-agent trap enable feature-name standard trap-name linkdown
+#
+user-interface con 0
+ authentication-mode aaa
+ idle-timeout 0 0
+user-interface vty 0 4
+ authentication-mode aaa
+#
+port-group clientports
+ group-member Ethernet0/0/1
+ group-member Ethernet0/0/2
+ group-member Ethernet0/0/3
+ group-member Ethernet0/0/4
+ group-member Ethernet0/0/5
+ group-member Ethernet0/0/6
+ group-member Ethernet0/0/7
+ group-member Ethernet0/0/8
+ group-member Ethernet0/0/9
+ group-member Ethernet0/0/10
+ group-member Ethernet0/0/11
+ group-member Ethernet0/0/12
+ group-member Ethernet0/0/13
+ group-member Ethernet0/0/14
+ group-member Ethernet0/0/15
+ group-member Ethernet0/0/16
+ group-member Ethernet0/0/17
+ group-member Ethernet0/0/18
+ group-member Ethernet0/0/19
+ group-member Ethernet0/0/20
+ group-member Ethernet0/0/21
+ group-member Ethernet0/0/22
+ group-member Ethernet0/0/23
+ group-member Ethernet0/0/24
+#
+port-group uplinks
+ group-member GigabitEthernet0/0/1
+ group-member GigabitEthernet0/0/2
+#
+return 

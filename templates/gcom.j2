@@ -1,0 +1,97 @@
+!LanSwitch BuildRun(NGBN Platform)
+enable
+configure terminal
+![VLAN]
+interface range ethernet 0/1/4
+switchport mode trunk
+exit
+vlan {{ interface['sum_vlans'] }}
+![DEVICE]
+cpu-car 100
+storm-control mode bit
+{% for key1,item in interface['iface'].items() %}
+{% set port = '0/' ~ key1 %}
+{% if key1 > 24 %}
+    {% set port = key1 - 22 %}
+    {% set port = '1/' ~ port %}
+{% endif %}
+interface ethernet 0/{{ port }}
+{% if interface['iface'][key1]['untagged'] is defined %}
+switchport default vlan {{ interface['iface'][key1]['untagged'] }}
+no switchport hybrid vlan 1
+switchport hybrid untagged vlan {{ interface['iface'][key1]['untagged'] }}
+port-security maximum 3
+port-security aging time 5
+storm-control multicast 50000
+storm-control unicast 50000
+{% endif %}
+{% if interface['iface'][key1]['tagged'] is defined or interface['iface'][key1]['trunk'] is defined %}
+switchport trunk allowed vlan {{ interface['iface'][key1]['tagged']|replace(" ", ",") or interface['iface'][key1]['trunk']|replace(" ", ",") }}
+{% endif %}
+exit
+{% endfor %}
+![PORT_ISOLATION]
+{% for key1,item in interface['iface'].items() if key1 < 25 %}
+interface ethernet 0/0/{{ key1 }}
+port-isolation uplink ethernet 0/1/4
+exit
+{% endfor %}
+![RADIUS]
+aaa
+radius password-encryption
+radius host radius
+primary-auth-ip 172.18.2.254 1812
+primary-acct-ip 172.18.2.254 1813
+auth-encrypt-key 66e126ae5f45f25100749533680f9271
+acct-encrypt-key 66e126ae5f45f25100749533680f9271
+username-format without-domain
+exit
+exit
+![OAM]
+service password-encryption
+username admin terminal console
+no ipaddress vlan 1
+ipaddress vlan {{ interface['managment']['vlan'] }}
+ipaddress {{ interface['managment']['ip'] }} 255.255.255.0 {{ interface['managment']['gateway'] }} vlan {{ interface['managment']['vlan'] }}
+muser radius radius chap local
+username privilege-auth
+username privilege-auth-remote-user mgv
+hostname {{ interface['sysname'] }}
+![STP]
+spanning-tree remote-loop-detect interface ethernet 0/0/1 to ethernet 0/0/24
+spanning-tree remote-loop-detect action shutdown
+{% for key1,item in interface['iface'].items() if key1 < 25 %}
+interface ethernet 0/0/{{ key1 }}
+no spanning-tree
+exit
+{% endfor %}
+![SNMP]
+snmp-server location mitsk8
+snmp-server name {{ interface['sysname'] }}
+snmp-server user utm UTMgroup auth md5 auth-password encrypt-authpassword e3967faa0e7e9b01b03fc24c51ee4443 priv des priv-password encrypt-privpassword 5cc25f92f6e04debb7738c849867a1f9
+snmp-server view utm-view 1 include
+snmp-server group UTMgroup 3 auth write utm-view
+snmp-server community public ro permit view iso
+![DHCPSNOOPING]
+dhcp-snooping
+{% for key1,item in interface['iface'].items() if key1 < 25 %}
+interface ethernet 0/0/{{ key1 }}
+ip-source-guard ip-mac-vlan
+exit
+{% endfor %}
+interface ethernet 0/1/4
+dhcp-snooping trust
+exit
+![DHCP]
+dhcp option82
+dhcp option82 format verbose node-identifier user-defined {{ interface['managment']['ip'] }}
+dhcp option82 information format ascii
+{% for key1,item in interface['iface'].items() if key1 < 25 %}
+interface ethernet 0/0/{{ key1 }}
+dhcp option82 remote-id string {{ interface['managment']['ip'] }}
+dhcp option82 circuit-id user-defined %portname:%svlan
+exit
+{% endfor%}
+interface ethernet 0/1/4
+no dhcp option82
+exit
